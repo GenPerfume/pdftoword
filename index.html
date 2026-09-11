@@ -3,326 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to Word OCR - Chia trang tự động</title>
+    <title>Chuyển Đổi PDF Sang Word Chuyên Sâu</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
 
-<div class="max-w-xl w-full bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-8">
-    <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-blue-400 mb-2">PDF to Word OCR</h1>
-        <p class="text-slate-400 text-sm">Tự động chia trang → OCR từng trang → Ghép 1 file Word</p>
-    </div>
-
-    <!-- Vùng chọn file (đã sửa) -->
-    <label id="dropZone" for="fileInput"
-        class="block border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-8 text-center cursor-pointer transition-all bg-slate-800/50 hover:bg-slate-700/50">
-        
-        <svg class="w-12 h-12 mx-auto text-slate-400 mb-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-        </svg>
-        
-        <p class="text-base font-medium mb-1 pointer-events-none">Kéo thả file PDF vào đây</p>
-        <p class="text-xs text-slate-400 mb-4 pointer-events-none">hoặc bấm vào đây để chọn file từ máy</p>
-        
-        <span class="inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2 px-5 rounded-lg pointer-events-none">
-            Chọn File PDF
-        </span>
-        
-        <!-- Input ẩn -->
-        <input type="file" id="fileInput" accept=".pdf,application/pdf" class="hidden">
-    </label>
-
-    <div id="fileStatus" class="hidden mt-6 bg-slate-700/40 p-4 rounded-xl border border-slate-600">
-        <div class="flex items-center justify-between mb-2">
-            <span id="fileName" class="text-sm font-medium truncate max-w-[220px]">filename.pdf</span>
-            <span id="statusText" class="text-xs text-blue-400 font-semibold">...</span>
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-sm">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-indigo-600 text-white rounded-lg">
+                    <i data-lucide="file-text" class="w-6 h-6"></i>
+                </div>
+                <h1 class="text-xl font-bold text-slate-900">PDF2Word <span class="text-indigo-600 font-extrabold">PRO</span></h1>
+            </div>
+            <span class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">Chế độ Chuyên Sâu (AI OCR)</span>
         </div>
-        <div class="w-full bg-slate-600 rounded-full h-2.5 overflow-hidden mb-2">
-            <div id="progressBar" class="bg-blue-500 h-2.5 rounded-full w-0 transition-all duration-300"></div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-4xl mx-auto w-full p-6 flex-grow flex flex-col justify-center">
+        
+        <!-- Upload Box -->
+        <div id="drop-zone" class="border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-2xl p-8 text-center transition-all cursor-pointer shadow-sm hover:shadow-md">
+            <div class="flex flex-col items-center">
+                <div class="p-4 bg-indigo-50 text-indigo-600 rounded-full mb-4">
+                    <i data-lucide="upload-cloud" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-lg font-semibold text-slate-800 mb-1">Kéo & Thả file PDF vào đây</h2>
+                <p class="text-sm text-slate-500 mb-4">Hoặc nhấn để chọn file từ máy tính của bạn</p>
+                <input type="file" id="file-input" accept=".pdf" class="hidden" />
+                <button onclick="document.getElementById('file-input').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow">
+                    Chọn File PDF
+                </button>
+            </div>
         </div>
-        <p id="pageInfo" class="text-xs text-slate-400"></p>
-    </div>
 
-    <button id="convertBtn" disabled
-        class="w-full mt-6 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl cursor-not-allowed">
-        Bắt đầu OCR từng trang
-    </button>
-</div>
+        <!-- File Info & Options (Hidden by default) -->
+        <div id="file-details" class="hidden bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mt-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="file-code-2" class="w-8 h-8 text-red-500"></i>
+                    <div>
+                        <p id="file-name" class="font-semibold text-slate-800 truncate max-w-xs">document.pdf</p>
+                        <p id="file-size" class="text-xs text-slate-500">0 MB</p>
+                    </div>
+                </div>
+                <button id="remove-file" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
 
-<script>
-const SERVER_URL = "https://pdf-ocr-backend-fcec.onrender.com";
-const { PDFDocument } = PDFLib;
-const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+            <!-- Conversion Options -->
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label class="border border-slate-200 p-4 rounded-xl flex items-start space-x-3 cursor-pointer hover:border-indigo-500 transition-colors bg-slate-50">
+                    <input type="radio" name="mode" value="layout" checked class="mt-1 text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="block font-medium text-sm text-slate-800">Bảo toàn Layout chuẩn</span>
+                        <span class="block text-xs text-slate-500 mt-0.5">Giữ nguyên định dạng, bảng biểu, hình ảnh từ file PDF gốc.</span>
+                    </div>
+                </label>
+                <label class="border border-slate-200 p-4 rounded-xl flex items-start space-x-3 cursor-pointer hover:border-indigo-500 transition-colors bg-slate-50">
+                    <input type="radio" name="mode" value="ocr" class="mt-1 text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="block font-medium text-sm text-slate-800">Quét OCR Chuyên Sâu</span>
+                        <span class="block text-xs text-slate-500 mt-0.5">Dành cho PDF dạng ảnh chụp/scanned. Nhận diện chữ tiếng Việt.</span>
+                    </div>
+                </label>
+            </div>
 
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileStatus = document.getElementById('fileStatus');
-const fileName = document.getElementById('fileName');
-const statusText = document.getElementById('statusText');
-const progressBar = document.getElementById('progressBar');
-const pageInfo = document.getElementById('pageInfo');
-const convertBtn = document.getElementById('convertBtn');
+            <!-- Action Button -->
+            <button id="convert-btn" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition-colors shadow flex justify-center items-center space-x-2">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                <span>Bắt Đầu Chuyển Đổi</span>
+            </button>
+        </div>
 
-let selectedFile = null;
+        <!-- Progress/Status Box -->
+        <div id="status-box" class="hidden bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mt-6 text-center">
+            <div id="loading-spinner" class="inline-block animate-spin text-indigo-600 mb-3">
+                <i data-lucide="loader-2" class="w-8 h-8"></i>
+            </div>
+            <p id="status-text" class="font-medium text-slate-800">Đang xử lý tài liệu...</p>
+            <div class="w-full bg-slate-100 rounded-full h-2 mt-4 overflow-hidden">
+                <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full w-0 transition-all duration-300"></div>
+            </div>
+            
+            <!-- Download Button -->
+            <a id="download-btn" href="#" download class="hidden mt-6 inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-3 rounded-xl transition-colors shadow">
+                <i data-lucide="download" class="w-5 h-5"></i>
+                <span>Tải File Word (.docx)</span>
+            </a>
+        </div>
 
-// Xử lý chọn file
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-        handleFile(e.target.files[0]);
-    }
-});
+    </main>
 
-// Kéo thả
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.classList.add('border-blue-500', 'bg-slate-700/50');
-});
-dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.classList.remove('border-blue-500', 'bg-slate-700/50');
-});
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.classList.remove('border-blue-500', 'bg-slate-700/50');
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        handleFile(e.dataTransfer.files[0]);
-    }
-});
+    <script>
+        lucide.createIcons();
 
-async function wakeServer() {
-    try {
-        await fetch(SERVER_URL + "/", { method: "GET", mode: "cors" });
-        return true;
-    } catch (err) {
-        console.warn("Wake server error:", err);
-        return false;
-    }
-}
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileDetails = document.getElementById('file-details');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const convertBtn = document.getElementById('convert-btn');
+        const statusBox = document.getElementById('status-box');
+        const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('status-text');
+        const downloadBtn = document.getElementById('download-btn');
+        let selectedFile = null;
 
-async function handleFile(file) {
-    // Kiểm tra định dạng
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (!isPdf) {
-        alert('Vui lòng chọn file định dạng PDF!');
-        fileInput.value = ''; // reset
-        return;
-    }
+        // Drag and drop handlers
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
+        });
 
-    selectedFile = file;
-    fileName.textContent = file.name;
-    fileStatus.classList.remove('hidden');
-    statusText.textContent = 'Đang đánh thức Server (có thể mất 30-60 giây)...';
-    statusText.className = 'text-xs text-yellow-400 font-semibold';
-    progressBar.style.width = '5%';
-    pageInfo.textContent = '';
-    
-    convertBtn.disabled = true;
-    convertBtn.className = "w-full mt-6 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl cursor-not-allowed";
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length && files[0].type === 'application/pdf') {
+                handleFileSelection(files[0]);
+            }
+        });
 
-    const ok = await wakeServer();
-    if (ok) {
-        statusText.textContent = 'Server sẵn sàng. Bấm nút bên dưới để bắt đầu.';
-        statusText.className = 'text-xs text-blue-400 font-semibold';
-        progressBar.style.width = '10%';
-        convertBtn.disabled = false;
-        convertBtn.className = "w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl cursor-pointer shadow-lg shadow-blue-500/30";
-    } else {
-        statusText.textContent = 'Không kết nối được Server. Hãy thử lại!';
-        statusText.className = 'text-xs text-red-400 font-semibold';
-    }
-}
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFileSelection(e.target.files[0]);
+        });
 
-// ===== Các hàm xử lý OCR =====
-async function extractSinglePage(pdfBytes, pageIndex) {
-    const srcDoc = await PDFDocument.load(pdfBytes);
-    const newDoc = await PDFDocument.create();
-    const [copiedPage] = await newDoc.copyPages(srcDoc, [pageIndex]);
-    newDoc.addPage(copiedPage);
-    return await newDoc.save();
-}
-
-async function pollStatus(taskId) {
-    const maxAttempts = 100; // khoảng 5 phút mỗi trang
-    for (let i = 0; i < maxAttempts; i++) {
-        const res = await fetch(`${SERVER_URL}/status/${taskId}`);
-        if (!res.ok) throw new Error("Lỗi lấy trạng thái");
-
-        const data = await res.json();
-        const st = (data.status || "").toLowerCase();
-
-        if (["completed", "done", "success", "finished"].includes(st)) return data;
-        if (["failed", "error"].includes(st)) {
-            throw new Error(data.error || data.message || "OCR thất bại");
+        function handleFileSelection(file) {
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            dropZone.classList.add('hidden');
+            fileDetails.classList.remove('hidden');
         }
-        await new Promise(r => setTimeout(r, 3000));
-    }
-    throw new Error("Timeout trang này");
-}
 
-async function convertOnePage(pageBytes, pageNum) {
-    const formData = new FormData();
-    const blob = new Blob([pageBytes], { type: 'application/pdf' });
-    formData.append("file", blob, `page_${pageNum}.pdf`);
+        document.getElementById('remove-file').addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            fileDetails.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+            statusBox.classList.add('hidden');
+        });
 
-    const uploadRes = await fetch(`${SERVER_URL}/convert`, {
-        method: "POST",
-        body: formData
-    });
-    if (!uploadRes.ok) {
-        const t = await uploadRes.text();
-        throw new Error(`Upload lỗi: ${t}`);
-    }
+        // Trigger conversion process
+        convertBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
 
-    const data = await uploadRes.json();
-    const taskId = data.task_id;
-    if (!taskId) throw new Error("Không nhận được task_id");
-
-    await pollStatus(taskId);
-
-    const dlRes = await fetch(`${SERVER_URL}/download/${taskId}`);
-    const contentType = (dlRes.headers.get("content-type") || "").toLowerCase();
-
-    if (!dlRes.ok || contentType.includes("json") || contentType.includes("text")) {
-        const errText = await dlRes.text();
-        throw new Error(errText.slice(0, 120) || "Lỗi tải file");
-    }
-
-    const docxBlob = await dlRes.blob();
-    if (docxBlob.size < 1200) throw new Error("File Word quá nhỏ");
-    return docxBlob;
-}
-
-async function extractTextFromDocx(docxBlob) {
-    try {
-        const arrayBuffer = await docxBlob.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        return (result.value || "").trim();
-    } catch (e) {
-        console.warn("Không trích được text:", e);
-        return "";
-    }
-}
-
-// Nút bắt đầu
-convertBtn.addEventListener('click', async () => {
-    if (!selectedFile) {
-        alert("Chưa chọn file PDF!");
-        return;
-    }
-
-    convertBtn.disabled = true;
-    convertBtn.className = "w-full mt-6 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl cursor-not-allowed";
-    statusText.textContent = 'Đang đọc file PDF...';
-    statusText.className = 'text-xs text-blue-400 font-semibold';
-    progressBar.style.width = '5%';
-
-    try {
-        const pdfBytes = await selectedFile.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const totalPages = pdfDoc.getPageCount();
-
-        pageInfo.textContent = `Tổng cộng ${totalPages} trang`;
-        statusText.textContent = `Bắt đầu OCR ${totalPages} trang...`;
-
-        const allTexts = [];
-        let successCount = 0;
-        let failCount = 0;
-
-        for (let i = 0; i < totalPages; i++) {
-            const pageNum = i + 1;
-            const percent = Math.floor((i / totalPages) * 88) + 5;
-            progressBar.style.width = percent + '%';
-            statusText.textContent = `Đang OCR trang ${pageNum}/${totalPages}...`;
-            pageInfo.textContent = `Thành công: ${successCount} | Lỗi: ${failCount}`;
+            fileDetails.classList.add('hidden');
+            statusBox.classList.remove('hidden');
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('mode', document.querySelector('input[name="mode"]:checked').value);
 
             try {
-                const singlePageBytes = await extractSinglePage(pdfBytes, i);
-                const docxBlob = await convertOnePage(singlePageBytes, pageNum);
-                const text = await extractTextFromDocx(docxBlob);
+                // Tỉ lệ tiến trình giả định để làm hiệu ứng
+                let progress = 10;
+                const interval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += 10;
+                        progressBar.style.width = progress + '%';
+                    }
+                }, 400);
 
-                allTexts.push({
-                    page: pageNum,
-                    text: text || `[Trang ${pageNum} - Không lấy được nội dung]`
+                // Gửi request lên Backend (Thay đổi URL API Backend thực tế của bạn)
+                const response = await fetch('/api/convert-pdf', {
+                    method: 'POST',
+                    body: formData
                 });
-                successCount++;
+
+                clearInterval(interval);
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const downloadUrl = URL.createObjectURL(blob);
+                    
+                    progressBar.style.width = '100%';
+                    statusText.textContent = 'Chuyển đổi thành công!';
+                    document.getElementById('loading-spinner').classList.add('hidden');
+                    
+                    downloadBtn.href = downloadUrl;
+                    downloadBtn.download = selectedFile.name.replace('.pdf', '.docx');
+                    downloadBtn.classList.remove('hidden');
+                } else {
+                    throw new Error('Chuyển đổi thất bại');
+                }
             } catch (err) {
-                console.error(`Lỗi trang ${pageNum}:`, err);
-                allTexts.push({
-                    page: pageNum,
-                    text: `[Trang ${pageNum} - Lỗi: ${err.message}]`
-                });
-                failCount++;
+                statusText.textContent = 'Đã có lỗi xảy ra. Vui lòng kiểm tra lại backend!';
+                progressBar.classList.add('bg-red-500');
             }
-
-            // Nghỉ nhẹ giữa các trang
-            await new Promise(r => setTimeout(r, 600));
-        }
-
-        // Ghép file Word
-        statusText.textContent = 'Đang ghép thành file Word...';
-        progressBar.style.width = '95%';
-
-        const children = [];
-        children.push(new Paragraph({
-            text: `Kết quả OCR - ${selectedFile.name}`,
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 300 }
-        }));
-
-        allTexts.forEach(item => {
-            children.push(new Paragraph({
-                text: `--- Trang ${item.page} ---`,
-                heading: HeadingLevel.HEADING_2,
-                spacing: { before: 280, after: 120 }
-            }));
-
-            const lines = item.text.split(/\n+/).filter(l => l.trim());
-            lines.forEach(line => {
-                children.push(new Paragraph({
-                    children: [new TextRun({ text: line, size: 24 })],
-                    spacing: { after: 100 }
-                }));
-            });
         });
-
-        const doc = new Document({
-            sections: [{ properties: {}, children }]
-        });
-
-        const blob = await Packer.toBlob(doc);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = selectedFile.name.replace(/\.pdf$/i, '') + '_OCR.docx';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-        progressBar.style.width = '100%';
-        statusText.textContent = `Hoàn tất! Thành công ${successCount}/${totalPages} trang`;
-        statusText.className = 'text-xs text-green-400 font-semibold';
-        pageInfo.textContent = failCount > 0 ? `Có ${failCount} trang bị lỗi` : 'Tất cả trang thành công';
-
-    } catch (err) {
-        console.error(err);
-        alert('Lỗi:\n' + err.message);
-        statusText.textContent = 'Lỗi: ' + err.message;
-        statusText.className = 'text-xs text-red-400 font-semibold';
-    } finally {
-        convertBtn.disabled = false;
-        convertBtn.className = "w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl cursor-pointer shadow-lg shadow-blue-500/30";
-    }
-});
-</script>
+    </script>
 </body>
 </html>
